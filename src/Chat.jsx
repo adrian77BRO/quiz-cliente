@@ -1,48 +1,54 @@
 import { useState, useEffect } from 'react';
-import io from 'socket.io-client';
 
-const socket = io('http://localhost:4000');
-
-export function Chat() {
-    const [mensaje, setMensaje] = useState('');
+export function Chat({ username }) {
     const [mensajes, setMensajes] = useState([]);
+    const [usuario, setUsuario] = useState('');
+    const [mensaje, setMensaje] = useState('');
 
-    const enviarMensaje = (e) => {
-        e.preventDefault();
+    const enviarMensajes = async () => {
+        await fetch('http://localhost:3000/mensajes/enviar', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ usuario, mensaje }),
+        });
+        setMensaje('');
+    };
 
-        const nuevoMensaje = {
-            cuerpo: mensaje,
-            from: 'Me'
-        }
-        setMensajes([...mensajes, nuevoMensaje]);
-        socket.emit('message', mensaje);
-    }
+    const getMensajes = async () => {
+        const response = await fetch('http://localhost:3000/mensajes/recibir');
+        const nuevosMensajes = await response.json();
+        setMensajes(...mensajes, nuevosMensajes);
+        getMensajes();
+    };
 
     useEffect(() => {
-        socket.on('message', recibirMensaje);
-
-        return () => {
-            socket.off('message', recibirMensaje);
-        }
+        setUsuario(username);
+        getMensajes();
     }, []);
 
-    const recibirMensaje = (mensaje) => {
-        setMensajes(state => [...state, mensaje]);
-    }
-
     return (
-        <div className='chat'>
-            <form onSubmit={enviarMensaje}>
-                <input type='text' placeholder='Escribir mensaje...'
-                    onChange={(e) => setMensaje(e.target.value)} />
-                <button>Enviar</button>
-            </form>
-
-            <ul>
-                {mensajes.map((mensaje, i) => (
-                    <li key={i}>{mensaje.from}: {mensaje.cuerpo}</li>
-                ))}
-            </ul>
+        <div className="App">
+            <div>
+                <h2>Chat</h2>
+                <div>
+                    {mensajes.map((msg, index) => (
+                        <div key={index}>
+                            <strong>{msg.usuario}:</strong> {msg.mensaje}
+                        </div>
+                    ))}
+                </div>
+                <div>
+                    <input
+                        type="text"
+                        placeholder="Message"
+                        value={mensaje}
+                        onChange={(e) => setMensaje(e.target.value)}
+                    />
+                    <button onClick={enviarMensajes}>Enviar</button>
+                </div>
+            </div>
         </div>
-    )
+    );
 }

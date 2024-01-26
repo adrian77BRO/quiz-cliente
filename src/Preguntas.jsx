@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
-export function Preguntas() {
+export function Preguntas({ username }) {
     const [pregunta, setPregunta] = useState(null);
     const [respuesta, setRespuesta] = useState('');
     const [puntos, setPuntos] = useState(0);
-    const [tiempo, setTiempo] = useState(0);
+    const [tiempo, setTiempo] = useState(10);
+    const [jugadoresConectados, setJugadoresConectados] = useState(0);
     const [ws, setWs] = useState(null);
 
     useEffect(() => {
@@ -13,6 +14,7 @@ export function Preguntas() {
         socket.onopen = () => {
             console.log('Conexión establecida');
             setWs(socket);
+            socket.send('Nuevo jugador');
         };
 
         socket.onmessage = (event) => {
@@ -30,6 +32,12 @@ export function Preguntas() {
                 setPuntos(0);
                 setPregunta(null);
                 setRespuesta('');
+            } else if (data.type === 'nuevoJugador') {
+                setJugadoresConectados(data.data.totalJugadores);
+                alert(`Nuevo jugador conectado. Total de jugadores: ${data.data.totalJugadores}`);
+            } else if (data.type === 'jugadorDesconectado') {
+                setJugadoresConectados(data.data.totalJugadores);
+                alert(`Un jugador se ha desconectado. Total de jugadores: ${data.data.totalJugadores}`);
             }
         };
 
@@ -42,13 +50,19 @@ export function Preguntas() {
         };
     }, []);
 
-    const iniciarTemporizador = () => {
-        // Temporizador para actualizar el tiempo restante
+    /* const iniciarTemporizador = () => {
         const temporizador = setInterval(() => {
             setTiempo((prevTiempo) => prevTiempo - 1);
         }, 1000);
+        return () => clearInterval(temporizador);
+    }; */
 
-        // Limpiar el temporizador al desmontar el componente o al cambiar de pregunta
+    const iniciarTemporizador = () => {
+        const temporizador = setInterval(() => {
+            setTiempo((prevTiempo) => {
+                return prevTiempo - 1;
+            });
+        }, 1000);
         return () => clearInterval(temporizador);
     };
 
@@ -64,6 +78,7 @@ export function Preguntas() {
 
     return (
         <div>
+            <h3>{username}</h3>
             {pregunta && (
                 <div>
                     <h1>Pregunta:</h1>
