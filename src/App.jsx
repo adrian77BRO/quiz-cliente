@@ -25,9 +25,15 @@ export default function App() {
         </div>
       )}
       {isLogged && (
-        <div>
-          <Preguntas username={username} />
-          <Chat username={username} />
+        <div className='container text-center bg-secondary p-3 rounded-3'>
+          <div className='row'>
+            <div className='col'>
+              <Preguntas username={username} />
+            </div>
+            <div className='col'>
+              <Chat username={username} />
+            </div>
+          </div>
         </div>
       )}
     </div>

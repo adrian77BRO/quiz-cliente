@@ -17,10 +17,18 @@ export function Chat({ username }) {
     };
 
     const getMensajes = async () => {
-        const response = await fetch('http://localhost:3000/mensajes/recibir');
-        const nuevosMensajes = await response.json();
-        setMensajes(...mensajes, nuevosMensajes);
-        getMensajes();
+        try {
+            const response = await fetch('http://localhost:3000/mensajes/recibir');
+            const nuevosMensajes = await response.json();
+            if (nuevosMensajes.length > 0) {
+                setMensajes(...mensajes, nuevosMensajes);
+                setTimeout(getMensajes, 1000);
+            }
+            /*setMensajes(...mensajes, nuevosMensajes);
+            setTimeout(getMensajes, 1000);*/
+        } catch (error) {
+            console.log('Error al cargar los mensajes', error);
+        }
     };
 
     useEffect(() => {
@@ -34,19 +42,19 @@ export function Chat({ username }) {
                 <h2>Chat</h2>
                 <div>
                     {mensajes.map((msg, index) => (
-                        <div key={index}>
+                        <div key={index} className='bg-info p-1 m-1 rounded-2'>
                             <strong>{msg.usuario}:</strong> {msg.mensaje}
                         </div>
                     ))}
                 </div>
                 <div>
-                    <input
+                    <input className='form-control'
                         type="text"
                         placeholder="Message"
                         value={mensaje}
                         onChange={(e) => setMensaje(e.target.value)}
                     />
-                    <button onClick={enviarMensajes}>Enviar</button>
+                    <button onClick={enviarMensajes} className='btn btn-warning m-2'>Enviar</button>
                 </div>
             </div>
         </div>
