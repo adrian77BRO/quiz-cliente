@@ -16,24 +16,34 @@ export function Chat({ username }) {
         setMensaje('');
     };
 
-    const getMensajes = async () => {
-        try {
-            const response = await fetch('http://localhost:3000/mensajes/recibir');
-            const nuevosMensajes = await response.json();
-            if (nuevosMensajes.length > 0) {
-                setMensajes(...mensajes, nuevosMensajes);
-                setTimeout(getMensajes, 1000);
-            }
-            /*setMensajes(...mensajes, nuevosMensajes);
-            setTimeout(getMensajes, 1000);*/
-        } catch (error) {
-            console.log('Error al cargar los mensajes', error);
-        }
-    };
-
     useEffect(() => {
+        const obtenerMensajes = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/mensajes/recibir');
+                const nuevosMensajes = await response.json();
+                setMensajes(nuevosMensajes);
+            } catch (error) {
+                console.log('Error al cargar los mensajes', error);
+            }
+        };
+
+        const obtenerNuevoMensaje = async () => {
+            try {
+                const response = await fetch('http://localhost:3000/mensajes/nuevo-mensaje');
+                const nuevoMensaje = await response.json();
+                setMensajes(prevMessages => [...prevMessages, nuevoMensaje]);
+            } catch (error) {
+                console.log('Error al cargar los mensajes', error);
+            } finally {
+                obtenerNuevoMensaje();
+            }
+        };
+
         setUsuario(username);
-        getMensajes();
+        obtenerMensajes();
+        obtenerNuevoMensaje();
+
+        return () => { };
     }, []);
 
     return (

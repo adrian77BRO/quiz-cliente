@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 
 export function Preguntas({ username }) {
     const [pregunta, setPregunta] = useState(null);
@@ -7,47 +8,55 @@ export function Preguntas({ username }) {
     const [tiempo, setTiempo] = useState(10);
     const [jugadoresConectados, setJugadoresConectados] = useState(0);
     const [notificacion, setNotificacion] = useState('');
-    const [ws, setWs] = useState(null);
+    const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        const socket = new WebSocket('ws://localhost:3000');
+        const socket = io('http://localhost:3000/quiz');
+        const room = 'salaJugadores';
 
-        socket.onopen = () => {
+        socket.emit('joinRoom', room, username);
+
+        socket.on('connect', () => {
             console.log('Conexión establecida');
-            setWs(socket);
-            socket.send('Nuevo jugador');
-        };
+            setSocket(socket);
+            socket.emit('Nuevo jugador');
+        });
 
-        socket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+        socket.on('nuevaPregunta', (data) => {
+            setPregunta(data.pregunta);
+            console.log(pregunta);
+            setRespuesta('');
+            setTiempo(data.tiempo);
+            iniciarTemporizador();
+        });
 
-            if (data.type === 'nuevaPregunta') {
-                setPregunta(data.data);
-                setRespuesta('');
-                setTiempo(data.tiempo);
-                iniciarTemporizador();
-            } else if (data.type === 'puntos') {
-                setPuntos(data.data);
-            } else if (data.type === 'finDelJuego') {
-                crearNotificacion(`¡Juego terminado! Puntaje: ${data.data.puntos}`);
-                setPuntos(0);
-                setPregunta(null);
-                setRespuesta('');
-            } else if (data.type === 'nuevoJugador') {
-                setJugadoresConectados(data.data.totalJugadores);
-                crearNotificacion(`Total de jugadores: ${data.data.totalJugadores}`);
-            } else if (data.type === 'jugadorDesconectado') {
-                setJugadoresConectados(data.data.totalJugadores);
-                crearNotificacion(`Total de jugadores: ${data.data.totalJugadores}`);
-            }
-        };
+        socket.on('puntos', (data) => {
+            setPuntos(data);
+        });
 
-        socket.onclose = () => {
+        socket.on('finDelJuego', (data) => {
+            crearNotificacion(`¡Juego terminado! Puntaje: ${data.puntaje}`);
+            setPuntos(0);
+            setPregunta(null);
+            setRespuesta('');
+        });
+
+        socket.on('nuevoJugador', (data) => {
+            setJugadoresConectados(data.totalJugadores);
+            crearNotificacion(`Total de jugadores: ${data.totalJugadores}`);
+        });
+
+        socket.on('jugadorDesconectado', (data) => {
+            setJugadoresConectados(data.totalJugadores);
+            crearNotificacion(`Total de jugadores: ${data.totalJugadores}`);
+        });
+
+        socket.on('disconnect', () => {
             console.log('Conexión cerrada');
-        };
+        });
 
         return () => {
-            socket.close();
+            socket.disconnect();
         };
     }, []);
 
@@ -65,8 +74,8 @@ export function Preguntas({ username }) {
     };
 
     const enviarRespuesta = () => {
-        if (respuesta !== '' && ws) {
-            ws.send(respuesta);
+        if (respuesta !== '' && socket) {
+            socket.emit('respuesta', respuesta, 'salaJugadores');
         }
     };
 
